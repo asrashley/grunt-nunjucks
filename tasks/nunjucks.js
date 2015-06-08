@@ -1,8 +1,10 @@
 /*
  * grunt-nunjucks
  * https://github.com/jlongster/nunjucks-grunt
+ * https://github.com/asrashley/grunt-nunjucks
  *
  * Copyright (c) 2013 James Long
+ * Copyright (c) 2015 Alex Ashley
  * Licensed under the MIT license.
  */
 
@@ -16,6 +18,7 @@ module.exports = function (grunt) {
         // Merge task-specific and/or target-specific options with these defaults.
         var opts = this.options({
             asFunction: false,
+            asDefine: false,
             env: null
         });
 
@@ -32,7 +35,7 @@ module.exports = function (grunt) {
                     return true;
                 }
             }).map(function(filepath) {
-                var filename = filepath;
+                var filename = filepath, js;
                 if (f.baseDir) {
                     if (f.baseDir.substr(-1) !== '/') {
                         // Append a trailing slash, if there isn't one.
@@ -44,9 +47,18 @@ module.exports = function (grunt) {
                     }
                 }
                 opts.name = nameFunc(filename);
-                return nunjucks.precompile(filepath, opts);
+                js =  nunjucks.precompile(filepath, opts);
+                if(opts.asDefine){
+                  js = 'define(["nunjucks"], function(nunjucks){'+js+
+                      '  return {'+
+                      '    render: function(ctx, cb) {'+
+                      '      return nunjucks.render("'+opts.name+'", ctx, cb);'+
+                      '    }'+
+                      '  };'+
+                      '});';
+                }
+                return js;
             }).join('');
-
             grunt.file.write(f.dest, src);
             grunt.log.writeln('File "' + f.dest + '" created.');
         });
